@@ -11,7 +11,28 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Backend attivo");
 });
+const requestCounts = {};
 
+function isRateLimited(ip) {
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minuto
+
+  if (!requestCounts[ip]) {
+    requestCounts[ip] = [];
+  }
+
+  // tieni solo richieste recenti
+  requestCounts[ip] = requestCounts[ip].filter(
+    (t) => now - t < windowMs
+  );
+
+  if (requestCounts[ip].length >= 5) {
+    return true;
+  }
+
+  requestCounts[ip].push(now);
+  return false;
+}
 app.post("/chat", async (req, res) => {
   try {
     const prompt = req.body?.prompt;
