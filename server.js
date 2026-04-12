@@ -28,32 +28,41 @@ app.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "Missing prompt" });
     }
 
-    console.log("Prompt:", prompt);
+    console.log("Prompt ricevuto:", prompt);
 
-    const response = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "user", content: prompt }
-        ]
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          "Content-Type": "application/json"
+    let response;
+
+    try {
+      response = await axios.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: prompt }]
         },
-        timeout: 10000
-      }
-    );
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          timeout: 8000
+        }
+      );
+    } catch (apiError) {
+      console.error("Errore Groq:", apiError.message);
 
-    res.json(response.data);
+      return res.status(500).json({
+        error: "Errore API Groq",
+        details: apiError.message
+      });
+    }
+
+    return res.json(response.data);
 
   } catch (error) {
-    console.error("ERROR:", error.response?.data || error.message);
+    console.error("Errore server:", error.message);
 
-    res.status(500).json({
-      error: "Server error",
+    return res.status(500).json({
+      error: "Errore server",
       details: error.message
     });
   }
