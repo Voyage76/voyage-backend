@@ -25,23 +25,30 @@ app.post("/chat", async (req, res) => {
       "https://api.groq.com/openai/v1/chat/completions",
       {
         model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          { role: "user", content: prompt }
+        ],
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json",
         },
+        timeout: 10000 // ⬅️ IMPORTANTISSIMO (10 secondi)
       }
     );
 
-    res.json(response.data);
+    return res.json(response.data);
 
   } catch (error) {
-    console.error("ERROR:", error.response?.data || error.message);
-    res.status(500).json({ error: "Server error" });
+    console.error("ERROR:", error.message);
+
+    if (error.code === "ECONNABORTED") {
+      return res.status(504).json({ error: "Timeout AI" });
+    }
+
+    return res.status(500).json({ error: "Server error" });
   }
 });
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
