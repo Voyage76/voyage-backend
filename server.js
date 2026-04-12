@@ -21,34 +21,38 @@ app.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "Missing prompt" });
     }
 
+    console.log("Prompt ricevuto:", prompt);
+
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         model: "llama-3.3-70b-versatile",
         messages: [
           { role: "user", content: prompt }
-        ],
+        ]
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        timeout: 10000 // ⬅️ IMPORTANTISSIMO (10 secondi)
+        timeout: 8000 // evita blocchi infiniti
       }
     );
+
+    console.log("Risposta OK");
 
     return res.json(response.data);
 
   } catch (error) {
-    console.error("ERROR:", error.message);
+    console.error("ERRORE:", error.response?.data || error.message);
 
-    if (error.code === "ECONNABORTED") {
-      return res.status(504).json({ error: "Timeout AI" });
-    }
-
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({
+      error: "Errore server",
+      details: error.message
+    });
   }
 });
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
