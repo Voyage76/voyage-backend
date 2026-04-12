@@ -1,9 +1,7 @@
-import express from "express";
-import axios from "axios";
-import cors from "cors";
-import dotenv from "dotenv";
-
-dotenv.config();
+const express = require("express");
+const axios = require("axios");
+const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
 app.use(cors());
@@ -21,8 +19,6 @@ app.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "Missing prompt" });
     }
 
-    console.log("Prompt ricevuto:", prompt);
-
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -36,21 +32,15 @@ app.post("/chat", async (req, res) => {
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json"
         },
-        timeout: 8000 // evita blocchi infiniti
+        timeout: 8000
       }
     );
 
-    console.log("Risposta OK");
-
-    return res.json(response.data);
+    res.json(response.data);
 
   } catch (error) {
-    console.error("ERRORE:", error.response?.data || error.message);
-
-    return res.status(500).json({
-      error: "Errore server",
-      details: error.message
-    });
+    console.error("ERROR:", error.message);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
