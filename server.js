@@ -1,25 +1,17 @@
-import express from "express";
-import axios from "axios";
-import cors from "cors";
-import dotenv from "dotenv";
-
-dotenv.config();
+const express = require("express");
+const axios = require("axios");
+const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-/**
- * TEST BASE
- */
 app.get("/", (req, res) => {
   res.send("Backend attivo");
 });
 
-/**
- * CHAT ENDPOINT
- */
 app.post("/chat", async (req, res) => {
   try {
     const prompt = req.body?.prompt;
@@ -27,8 +19,6 @@ app.post("/chat", async (req, res) => {
     if (!prompt) {
       return res.status(400).json({ error: "Missing prompt" });
     }
-
-    console.log("Prompt ricevuto:", prompt);
 
     let response;
 
@@ -48,23 +38,15 @@ app.post("/chat", async (req, res) => {
         }
       );
     } catch (apiError) {
-      console.error("Errore Groq:", apiError.message);
-
-      return res.status(500).json({
-        error: "Errore API Groq",
-        details: apiError.message
-      });
+      console.error("Groq error:", apiError.message);
+      return res.status(500).json({ error: "Errore Groq" });
     }
 
-    return res.json(response.data);
+    res.json(response.data);
 
   } catch (error) {
-    console.error("Errore server:", error.message);
-
-    return res.status(500).json({
-      error: "Errore server",
-      details: error.message
-    });
+    console.error("Server error:", error.message);
+    res.status(500).json({ error: "Errore server" });
   }
 });
 
