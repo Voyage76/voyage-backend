@@ -34,6 +34,13 @@ function isRateLimited(ip) {
   return false;
 }
 app.post("/chat", async (req, res) => {
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+if (isRateLimited(ip)) {
+  return res.status(429).json({
+    error: "Too many requests, slow down"
+  });
+}
   try {
     const prompt = req.body?.prompt;
 
