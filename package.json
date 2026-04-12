@@ -1,7 +1,9 @@
 {
   "name": "voyage-backend",
   "version": "1.0.0",
+  "description": "VoyageAI backend",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
