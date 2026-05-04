@@ -1,85 +1,52 @@
-const express = require("express");
-const axios = require("axios");
-const cors = require("cors");
-require("dotenv").config();
+const express = require("express")
+const fetch = require("node-fetch")
+require("dotenv").config()
 
-const app = express();
-
-app.use(cors());
-app.use(express.json());
+const app = express()
 
 app.get("/", (req, res) => {
-  res.send("Backend attivo");
-});
-const requestCounts = {};
+  res.send("Voyage backend attivo 🚀")
+})
 
-function isRateLimited(ip) {
-  const now = Date.now();
-  const windowMs = 60 * 1000; // 1 minuto
-
-  if (!requestCounts[ip]) {
-    requestCounts[ip] = [];
-  }
-
-  // tieni solo richieste recenti
-  requestCounts[ip] = requestCounts[ip].filter(
-    (t) => now - t < windowMs
-  );
-
-  if (requestCounts[ip].length >= 5) {
-    return true;
-  }
-
-  requestCounts[ip].push(now);
-  return false;
-}
-app.post("/chat", async (req, res) => {
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-
-if (isRateLimited(ip)) {
-  return res.status(429).json({
-    error: "Too many requests, slow down"
-  });
-}
+app.get("/explore", async (req, res) => {
   try {
-    const prompt = req.body?.prompt;
+    const { city } = req.query
 
-    if (!prompt) {
-      return res.status(400).json({ error: "Missing prompt" });
+    if (!city || city.length < 2) {
+      return res.status(400).json({ error: "Invalid city" })
     }
 
-    let response;
+    const GOOGLE_KEY = process.env.GOOGLE_MAPS_API_KEY
 
-    try {
-      response = await axios.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        {
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: prompt }]
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          timeout: 8000
-        }
-      );
-    } catch (apiError) {
-      console.error("Groq error:", apiError.message);
-      return res.status(500).json({ error: "Errore Groq" });
+    // 🔹 GEOCODING
+    const geoRes = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city)}&key=${GOOGLE_KEY}`
+    )
+    const geoData = await geoRes.json()
+
+    const location = geoData.results[0]?.geometry?.location
+
+    if (!location) {
+      return res.status(404).json({ error: "City not found" })
     }
 
-    res.json(response.data);
+    // 🔹 PLACES
+    const placesRes = await fetch(
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=tourist+attractions+in+${encodeURIComponent(city)}&key=${GOOGLE_KEY}`
+    )
+    const placesData = await placesRes.json()
 
-  } catch (error) {
-    console.error("Server error:", error.message);
-    res.status(500).json({ error: "Errore server" });
+    res.json({
+      lat: location.lat,
+      lon: location.lng,
+      places: placesData.results
+    })
+
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: "Server error" })
   }
-});
+})
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("Server running on port " + PORT);
-});
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log("Server running on port " + PORT))
