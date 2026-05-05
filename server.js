@@ -236,15 +236,26 @@ app.post("/chat", async (req, res) => {
        model: "llama-3.1-8b-instant",
 
 
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-      }),
-    });
+     messages: [
+  {
+    role: "system",
+    content:
+      `You are VoyageAI, a travel assistant. ` +
+      `You must always reply only in this language: ${req.body.language || "Italiano"}. ` +
+      `If the user asks for JSON, keep all text fields in that language. ` +
+      `Never switch to English unless the selected language is English.`
+  },
+  {
+    role: "user",
+    content:
+      `Selected language: ${req.body.language || "Italiano"}\n` +
+      `City: ${req.body.city || ""}\n\n` +
+      prompt
+  }
+],
+temperature: 0.2,
+max_completion_tokens: 4096,
+
 
     const data = await response.json();
 
