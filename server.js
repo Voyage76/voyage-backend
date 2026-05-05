@@ -73,6 +73,7 @@ app.get("/explore", async (req, res) => {
 // 🤖 CHAT (Groq via backend)
 app.post("/chat", async (req, res) => {
   const prompt = req.body.prompt;
+  console.log("MODEL USATO:", "llama-3.1-70b-versatile"); // 👈 QUI
 
   if (!prompt) {
     return res.status(400).json({ error: "Missing prompt" });
