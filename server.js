@@ -216,6 +216,20 @@ app.get("/explore", async (req, res) => {
 // Groq chat
 app.post("/chat", async (req, res) => {
   const prompt = req.body.prompt;
+  const selectedLanguage = req.body.language || "Italiano";
+  const city = req.body.city || "";
+
+  const languageMap = {
+    Italiano: "Italian",
+    English: "English",
+    Francais: "French",
+    Français: "French",
+    Deutsch: "German",
+    Espanol: "Spanish",
+    Español: "Spanish",
+  };
+
+  const outputLanguage = languageMap[selectedLanguage] || selectedLanguage || "Italian";
 
   if (!prompt) {
     return res.status(400).json({ reply: "Missing prompt" });
@@ -226,6 +240,8 @@ app.post("/chat", async (req, res) => {
   }
 
   try {
+    console.log("LANGUAGE RECEIVED:", selectedLanguage, "->", outputLanguage);
+
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -233,29 +249,32 @@ app.post("/chat", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-       model: "llama-3.1-8b-instant",
-
-
-     messages: [
-  {
-    role: "system",
-    content:
-      `You are VoyageAI, a travel assistant. ` +
-      `You must always reply only in this language: ${req.body.language || "Italiano"}. ` +
-      `If the user asks for JSON, keep all text fields in that language. ` +
-      `Never switch to English unless the selected language is English.`
-  },
-  {
-    role: "user",
-    content:
-      `Selected language: ${req.body.language || "Italiano"}\n` +
-      `City: ${req.body.city || ""}\n\n` +
-      prompt
-  }
-],
-temperature: 0.2,
-max_completion_tokens: 4096,
-
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are VoyageAI, a travel assistant.\n` +
+              `The app selected language is: ${selectedLanguage}.\n` +
+              `You MUST answer only in ${outputLanguage}.\n` +
+              `Never answer in English unless the selected language is English.\n` +
+              `If the user asks for JSON, keep the JSON keys unchanged, but translate every user-facing value into ${outputLanguage}.\n` +
+              `Descriptions, tips, activity names, explanations, chat replies and itinerary text must all be in ${outputLanguage}.`
+          },
+          {
+            role: "user",
+            content:
+              `Selected app language: ${selectedLanguage}\n` +
+              `Required output language: ${outputLanguage}\n` +
+              `City: ${city}\n\n` +
+              `IMPORTANT: Reply only in ${outputLanguage}.\n\n` +
+              prompt
+          }
+        ],
+        temperature: 0.1,
+        max_completion_tokens: 4096,
+      }),
+    });
 
     const data = await response.json();
 
