@@ -100,9 +100,9 @@ app.post("/chat", async (req, res) => {
       }
     );
 
-    const data = await response.json();
-
-    res.json(data);
+    res.json({
+  reply: "FUNZIONA BACKEND NUOVO"
+});
   } catch (e) {
     console.error("Groq error:", e);
     res.status(500).json({ error: "Groq request failed" });
