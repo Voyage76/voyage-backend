@@ -100,8 +100,13 @@ app.post("/chat", async (req, res) => {
       }
     );
 
-    res.json({
-  reply: "FUNZIONA BACKEND NUOVO"
+   const data = await response.json();
+
+// DEBUG (utile)
+console.log("GROQ RESPONSE:", JSON.stringify(data, null, 2));
+
+res.json({
+  reply: data.choices?.[0]?.message?.content || "Errore: risposta vuota"
 });
   } catch (e) {
     console.error("Groq error:", e);
