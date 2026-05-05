@@ -17,17 +17,17 @@ app.use(express.json());
 
 // 🚫 RATE LIMIT (anti abuso)
 const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minuto
-  max: 30, // max 30 richieste / min per IP
+  windowMs: 60 * 1000,
+  max: 30,
 });
 app.use(limiter);
 
-// 🟢 HEALTH CHECK (UptimeRobot)
+// 🟢 HEALTH CHECK
 app.get("/", (req, res) => {
   res.send("Voyage backend attivo 🚀");
 });
 
-// 🌍 EXPLORE (Google Maps via backend)
+// 🌍 EXPLORE
 app.get("/explore", async (req, res) => {
   const city = req.query.city;
 
@@ -36,12 +36,12 @@ app.get("/explore", async (req, res) => {
   }
 
   try {
-    // 🔹 1. Geocoding
     const geoRes = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
         city
       )}&key=${GOOGLE_KEY}`
     );
+
     const geoData = await geoRes.json();
 
     if (!geoData.results || geoData.results.length === 0) {
@@ -50,7 +50,6 @@ app.get("/explore", async (req, res) => {
 
     const location = geoData.results[0].geometry.location;
 
-    // 🔹 2. Places
     const placesRes = await fetch(
       `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
         "tourist attractions in " + city
@@ -64,16 +63,16 @@ app.get("/explore", async (req, res) => {
       lon: location.lng,
       places: placesData.results || [],
     });
+
   } catch (e) {
     console.error("Explore error:", e);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// 🤖 CHAT (Groq via backend)
+// 🤖 CHAT (Groq FIXED)
 app.post("/chat", async (req, res) => {
   const prompt = req.body.prompt;
-  console.log("MODEL USATO:", "llama-3.1-70b-versatile"); // 👈 QUI
 
   if (!prompt) {
     return res.status(400).json({ error: "Missing prompt" });
@@ -89,7 +88,7 @@ app.post("/chat", async (req, res) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-         model: "llama-3.1-70b-versatile",
+          model: "llama3-8b-8192", // ✅ MODELLO ATTIVO
           messages: [
             {
               role: "user",
@@ -100,17 +99,41 @@ app.post("/chat", async (req, res) => {
       }
     );
 
-   const data = await response.json();
+    const data = await response.json();
 
-// DEBUG (utile)
-console.log("GROQ RESPONSE:", JSON.stringify(data, null, 2));
+    // 🔍 DEBUG
+    console.log("GROQ RESPONSE:", JSON.stringify(data, null, 2));
 
-res.json({
-  reply: data.choices?.[0]?.message?.content || "Errore: risposta vuota"
-});
+    // ❌ errore Groq
+    if (data.error) {
+      console.error("GROQ ERROR:", data.error);
+
+      return res.json({
+        reply: "Errore AI: " + data.error.message,
+      });
+    }
+
+    // ✅ risposta valida
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      console.error("RISPOSTA VUOTA:", data);
+
+      return res.json({
+        reply: "Errore: risposta AI non valida",
+      });
+    }
+
+    res.json({
+      reply: content,
+    });
+
   } catch (e) {
     console.error("Groq error:", e);
-    res.status(500).json({ error: "Groq request failed" });
+
+    res.status(500).json({
+      reply: "Errore server AI",
+    });
   }
 });
 
